@@ -1,0 +1,41 @@
+{
+  "user_preferences": {
+    "wake_word": "hey aura",
+    "voice_response": true,
+    "auto_start": false,
+    "log_commands": true,
+    "default_browser": "chrome",
+    "voice_timeout": 5
+  },
+  "device_aliases": {
+    "lights": "living room light",
+    "bedroom lights": "bedroom light",
+    "cooling": "ac",
+    "television": "tv"
+  },
+  "quick_commands": {
+    "good morning": [
+      "turn on living room light",
+      "set brightness to 70",
+      "open chrome",
+      "search weather today"
+    ],
+    "good night": [
+      "turn off all lights",
+      "turn off tv",
+      "set volume to 20"
+    ],
+    "work mode": [
+      "open vscode",
+      "open chrome",
+      "set brightness to 80"
+    ]
+  },
+  "statistics": {
+    "total_commands": 0,
+    "successful_commands": 0,
+    "failed_commands": 0,
+    "last_used": null,
+    "most_used_commands": {}
+  }
+}
