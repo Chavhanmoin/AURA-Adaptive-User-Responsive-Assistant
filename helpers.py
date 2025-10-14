@@ -96,10 +96,10 @@ def takeCommand() -> str:
     r = sr.Recognizer()
     with sr.Microphone() as source:
         print('Listening...')
-        r.pause_threshold = 1
-        r.energy_threshold = 494
-        r.adjust_for_ambient_noise(source, duration=1.5)
-        audio = r.listen(source)
+        r.pause_threshold = 2  # Increased for longer commands
+        r.energy_threshold = 300
+        r.adjust_for_ambient_noise(source, duration=1)
+        audio = r.listen(source, timeout=10, phrase_time_limit=8)  # Longer listening time
 
     try:
         print('Recognizing...')
@@ -107,7 +107,6 @@ def takeCommand() -> str:
         print(f'User said: {query}')
         return query
     except Exception as e:
-        # print(e)
         print('Say that again please...')
         return 'None'
 

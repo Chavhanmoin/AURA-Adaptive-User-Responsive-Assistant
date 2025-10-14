@@ -9,11 +9,18 @@ import smtplib
 import cv2
 from sys import platform
 from dotenv import load_dotenv
+import openai
+import os
 from youtube import youtube
 from news import speak_news, getNewsUrl
 from OCR import OCR
 from diction import translate
 from helpers import *
+from system_control import open_anything, close_anything, execute_system_command
+import speech_recognition as sr
+from web_automation import search_google, search_youtube, send_whatsapp_message, compose_gmail, close_web_automation
+from intent_recognition import process_user_intent
+from ai_intent_recognition import get_ai_intent
 
 # Load .env file
 load_dotenv(dotenv_path=r"F:\J.A.R.V.I.S-master\.env")
@@ -69,6 +76,21 @@ class Jarvis:
             speak('Sorry sir, not able to send email at the moment')
 
     def execute_query(self, query):
+        # Always try AI intent first (with better fallback)
+        try:
+            ai_intent = get_ai_intent(query)
+            print(f"AI Intent: {ai_intent}")
+            if ai_intent['confidence'] > 0.5:
+                return self.handle_ai_intent(ai_intent)
+        except Exception as e:
+            print(f"AI processing failed: {e}")
+        
+        # Fallback to rule-based intent
+        intent_data = process_user_intent(query)
+        if intent_data['intent'] and intent_data['confidence'] > 0.3:
+            return self.handle_intent(intent_data)
+        
+        # Original processing as last resort
         query = query.lower()
 
         if 'wikipedia' in query:
@@ -101,6 +123,12 @@ class Jarvis:
 
         elif 'open amazon' in query:
             webbrowser.get('chrome').open_new_tab('https://amazon.com')
+        
+        elif 'open file' in query or 'open folder' in query:
+            speak('What file or folder should I open?')
+            path = takeCommand()
+            result = open_anything(path)
+            speak(result)
 
         elif 'cpu' in query:
             cpu()
@@ -122,20 +150,37 @@ class Jarvis:
             # Adjust path as per your music location
             os.startfile("D:\\RoiNa.mp3")
 
-        elif 'search youtube' in query:
-            speak('What do you want to search on Youtube?')
-            youtube(takeCommand())
+        elif 'youtube' in query and 'search' in query:
+            search_term = query.replace('youtube', '').replace('search', '').replace('open', '').replace('and', '').strip()
+            if search_term and len(search_term) > 1:
+                result = search_youtube(search_term)
+                print(result)
+                speak(result)
+            else:
+                speak('What do you want to search on Youtube?')
+                search_term = takeCommand()
+                if search_term != 'None':
+                    result = search_youtube(search_term)
+                    print(result)
+                    speak(result)
 
         elif 'the time' in query:
             strTime = datetime.datetime.now().strftime("%H:%M:%S")
             speak(f'Sir, the time is {strTime}')
 
-        elif 'search' in query:
-            speak('What do you want to search for?')
-            search = takeCommand()
-            url = 'https://google.com/search?q=' + search
-            webbrowser.get('chrome').open_new_tab(url)
-            speak('Here is what I found for ' + search)
+        elif 'search' in query and 'youtube' not in query:
+            # Extract search term from query or ask for it
+            search_term = query.replace('search', '').replace('for', '').strip()
+            if not search_term or len(search_term) < 2:
+                speak('What do you want to search for?')
+                search_term = takeCommand()
+            
+            if search_term != 'None':
+                result = search_google(search_term)
+                print(result)
+                speak(result)
+            else:
+                speak('No search term provided')
 
         elif 'location' in query:
             speak('What is the location?')
@@ -159,14 +204,29 @@ class Jarvis:
         elif 'stands for' in query:
             speak('J.A.R.V.I.S stands for JUST A RATHER VERY INTELLIGENT SYSTEM')
 
+        elif 'open' in query and 'code' not in query:
+            item = query.replace('open', '').replace('folder', '').strip()
+            if 'download' in item:
+                item = 'downloads'
+            result = open_anything(item)
+            print(result)
+            speak(result)
+        
+        elif 'close' in query:
+            item = query.replace('close', '').strip()
+            result = close_anything(item)
+            speak(result)
+        
+        elif 'run command' in query or 'execute' in query:
+            speak('What command should I execute?')
+            command = takeCommand()
+            result = execute_system_command(command)
+            speak('Command executed')
+            print(result)
+
         elif 'open code' in query:
-            if platform == "win32":
-                try:
-                    os.startfile("code")
-                except:
-                    speak("VS Code not found")
-            elif platform in ["linux", "linux2", "darwin"]:
-                os.system('code .')
+            result = open_anything('code')
+            speak(result)
 
         elif 'shutdown' in query:
             if platform == "win32":
@@ -192,14 +252,197 @@ class Jarvis:
                 speak("You told me to remember that: " + remember.read())
 
         elif 'sleep' in query or 'exit' in query or 'quit' in query:
+            close_web_automation()
             speak("Goodbye Sir, shutting down JARVIS")
             sys.exit()
+    
+    def handle_intent(self, intent_data):
+        """Handle recognized intents"""
+        intent = intent_data['intent']
+        entities = intent_data['entities']
+        
+        if intent == 'open_app' and 'app' in entities:
+            result = open_anything(entities['app'])
+            speak(result)
+            return
+        
+        elif intent == 'close_app' and 'app' in entities:
+            result = close_anything(entities['app'])
+            speak(result)
+            return
+        
+        elif intent == 'search_google' and 'query' in entities:
+            result = search_google(entities['query'])
+            speak(result)
+            return
+        
+        elif intent == 'search_youtube' and 'query' in entities:
+            result = search_youtube(entities['query'])
+            speak(result)
+            return
+        
+        elif intent == 'time_query':
+            strTime = datetime.datetime.now().strftime("%H:%M:%S")
+            speak(f'Sir, the time is {strTime}')
+            return
+        
+        elif intent == 'system_info':
+            cpu()
+            return
+        
+        elif intent == 'joke':
+            joke()
+            return
+        
+        elif intent == 'weather_query':
+            weather()
+            return
+        
+        # If intent recognized but entities missing, ask for clarification
+        if intent == 'open_app':
+            speak('Which application should I open?')
+        elif intent == 'search_google':
+            speak('What should I search for?')
+        elif intent == 'search_youtube':
+            speak('What should I search on YouTube?')
+    
+    def handle_ai_intent(self, ai_intent):
+        """Handle AI-recognized intents"""
+        intent = ai_intent['intent']
+        entities = ai_intent['entities']
+        
+        if intent == 'open_app':
+            app = entities.get('app', entities.get('application', ''))
+            if app:
+                result = open_anything(app)
+                speak(result)
+            else:
+                speak('Which application should I open?')
+            return
+        
+        elif intent == 'close_app':
+            app = entities.get('app', entities.get('application', ''))
+            if app:
+                result = close_anything(app)
+                speak(result)
+            else:
+                speak('Which application should I close?')
+            return
+        
+        elif intent == 'search_google':
+            query = entities.get('query', entities.get('search_term', ''))
+            if query:
+                result = search_google(query)
+                speak(result)
+            else:
+                speak('What should I search for?')
+            return
+        
+        elif intent == 'search_youtube':
+            query = entities.get('query', entities.get('search_term', entities.get('search_query', '')))
+            if query:
+                result = search_youtube(query)
+                print(result)
+                speak(result)
+            else:
+                speak('What should I search on YouTube?')
+            return
+        
+        elif 'send' in intent or 'message' in intent or 'whatsapp' in intent:
+            contact = entities.get('contact', '')
+            message = entities.get('message', '')
+            print(f"DEBUG: Intent matched - {intent}")
+            print(f"DEBUG: Contact - {contact}")
+            print(f"DEBUG: Message - {message}")
+            if contact and message:
+                print(f"Sending WhatsApp message to {contact}: {message}")
+                try:
+                    print("DEBUG: Initializing web automation...")
+                    from web_automation import WebAutomation
+                    print("DEBUG: Creating WebAutomation instance...")
+                    bot = WebAutomation()
+                    if not bot.driver:
+                        speak("Chrome failed to start")
+                        return
+                    print("DEBUG: Calling whatsapp_send_message...")
+                    result = bot.whatsapp_send_message(contact, message)
+                    print(f"DEBUG: Result - {result}")
+                    speak(result)
+                except Exception as e:
+                    print(f"WhatsApp error: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    speak("Sorry, WhatsApp messaging failed")
+            else:
+                speak('Who should I send the message to?')
+            return
+        
+        elif intent == 'time_query':
+            strTime = datetime.datetime.now().strftime("%H:%M:%S")
+            speak(f'Sir, the time is {strTime}')
+            return
+        
+        elif intent == 'system_info':
+            cpu()
+            return
+        
+        elif intent == 'joke':
+            joke()
+            return
+        
+        elif intent == 'weather_query':
+            weather()
+            return
+        
+        elif intent == 'screenshot':
+            screenshot()
+            return
+        
+        elif 'email' in intent or 'mail' in intent:
+            recipient = entities.get('recipient', entities.get('to', ''))
+            subject = entities.get('subject', '')
+            body = entities.get('body', entities.get('message', ''))
+            print(f"DEBUG: Email intent - Recipient: {recipient}, Subject: {subject}")
+            
+            if not recipient:
+                speak('What is the email address?')
+                recipient = takeCommand()
+            if not subject:
+                speak('What is the subject?')
+                subject = takeCommand()
+            if not body:
+                speak('What should I write in the email?')
+                body = takeCommand()
+            
+            try:
+                from gmail_service import send_gmail_api
+                result = send_gmail_api(recipient, subject, body)
+                print(result)
+                speak(result)
+            except Exception as e:
+                print(f"Gmail API error: {e}")
+                speak("Sorry, email sending failed")
+            return
+        
+        elif intent == 'shutdown':
+            speak('Shutting down the system')
+            if platform == "win32":
+                os.system('shutdown /p /f')
+            return
+        
+        elif intent == 'other':
+            speak('I understand you want to chat, but I\'m focused on task automation. How can I help you with system tasks?')
+            return
 
-        elif 'dictionary' in query:
-            speak('What do you want to search in your intelligent dictionary?')
-            translate(takeCommand())
+        elif 'dictionary' in intent or 'translate' in intent:
+            word = entities.get('word', entities.get('query', ''))
+            if not word:
+                speak('What do you want to search in your intelligent dictionary?')
+                word = takeCommand()
+            translate(word)
+            return
 
-        elif 'news' in query:
+        elif 'news' in intent:
             speak('Of course sir..')
             speak_news()
             speak('Do you want to read the full news?')
@@ -210,15 +453,10 @@ class Jarvis:
                 speak('You can now read the full news from this website.')
             else:
                 speak('No problem sir.')
-
-        elif 'email to gaurav' in query:
-            try:
-                speak('What should I say?')
-                content = takeCommand()
-                to = EMAIL  # sending email to your configured EMAIL
-                self.sendEmail(to, content)
-            except Exception:
-                speak('Sorry sir, not able to send email at the moment')
+            return
+        
+        # Fallback for unhandled intents
+        speak('I understand you want to chat, but I\'m focused on task automation. How can I help you with system tasks?')
 
 
 def wakeUpJARVIS():
@@ -227,52 +465,87 @@ def wakeUpJARVIS():
     try:
         while True:
             query = takeCommand().lower()
-            bot_.execute_query(query)
+            if query != 'none':
+                bot_.execute_query(query)
     except KeyboardInterrupt:
         speak("Goodbye Sir, shutting down JARVIS")
         sys.exit(0)
 
+def jarvis_with_wake_word():
+    """JARVIS with wake word activation and keyboard input"""
+    import keyboard
+    import threading
+    
+    speak("JARVIS initialized. Say 'Jarvis' to wake me up or press Ctrl+K to type command.")
+    bot_ = Jarvis()
+    
+    # Simple wake word detection
+    r = sr.Recognizer()
+    mic = sr.Microphone()
+    
+    with mic as source:
+        r.adjust_for_ambient_noise(source, duration=1)
+    
+    def keyboard_listener():
+        """Listen for Ctrl+K keyboard shortcut"""
+        while True:
+            try:
+                if keyboard.is_pressed('ctrl+k'):
+                    print("\n🎯 Keyboard input mode activated")
+                    speak("Type your command")
+                    command = input("Enter command: ").strip()
+                    if command:
+                        print(f"Executing: {command}")
+                        bot_.execute_query(command)
+                    time.sleep(0.5)  # Prevent multiple triggers
+            except:
+                pass
+            time.sleep(0.1)
+    
+    # Start keyboard listener in background
+    keyboard_thread = threading.Thread(target=keyboard_listener, daemon=True)
+    keyboard_thread.start()
+    
+    while True:
+        try:
+            print("Listening for 'Jarvis' or press Ctrl+K...")
+            with mic as source:
+                audio = r.listen(source, timeout=1, phrase_time_limit=3)
+            
+            text = r.recognize_google(audio, language='en-in').lower()
+            print(f"Heard: {text}")
+            
+            if 'jarvis' in text:
+                speak("At your service sir")
+                query = takeCommand().lower()
+                if query != 'none':
+                    bot_.execute_query(query)
+            else:
+                # If no 'jarvis' but got valid speech, treat as direct command
+                if text and text != 'none' and len(text) > 2:
+                    print(f"Direct command: {text}")
+                    bot_.execute_query(text)
+                    
+        except (sr.WaitTimeoutError, sr.UnknownValueError):
+            pass
+        except KeyboardInterrupt:
+            speak("Goodbye Sir, shutting down JARVIS")
+            sys.exit(0)
+        except Exception as e:
+            print(f"Error: {e}")
+            time.sleep(0.5)
+
 
 if __name__ == '__main__':
-    recognizer = cv2.face.LBPHFaceRecognizer_create()  # Local Binary Patterns Histograms
-    recognizer.read('./Face-Recognition/trainer/trainer.yml')  # load trained model
-    cascadePath = "./Face-Recognition/haarcascade_frontalface_default.xml"
-    faceCascade = cv2.CascadeClassifier(cascadePath)  # initializing haar cascade for object detection approach
-
-    font = cv2.FONT_HERSHEY_SIMPLEX  # font type
-
-    id = 2  # number of persons you want to Recognize
-
-    names = ['', 'Moin']  # names, leave first empty because counter starts from 0
-
-    cam = cv2.VideoCapture(0, cv2.CAP_DSHOW)  # cv2.CAP_DSHOW to remove warning
-    cam.set(3, 640)  # set video FrameWidht
-    cam.set(4, 480)  # set video FrameHeight
-
-    minW = 0.1 * cam.get(3)
-    minH = 0.1 * cam.get(4)
-
-    while True:
-        ret, img = cam.read()  # read the frames
-
-        converted_image = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)  # convert to grayscale
-
-        faces = faceCascade.detectMultiScale(
-            converted_image,
-            scaleFactor=1.2,
-            minNeighbors=5,
-            minSize=(int(minW), int(minH)),
-        )
-
-        for (x, y, w, h) in faces:
-            cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
-            id_, accuracy = recognizer.predict(converted_image[y:y + h, x:x + w])
-
-            if accuracy < 100:
-                speak("Optical Face Recognition Done. Welcome")
-                cam.release()
-                cv2.destroyAllWindows()
-                wakeUpJARVIS()
-            else:
-                speak("Optical Face Recognition Failed")
-                break
+    import time
+    
+    print("Choose activation method:")
+    print("1. Wake word + keyboard (say 'Jarvis' or press Ctrl+K)")
+    print("2. Face recognition + wake word + keyboard")
+    choice = input("Enter choice (1 or 2): ")
+    
+    if choice == '1':
+        jarvis_with_wake_word()
+    else:
+        speak("Starting face recognition...")
+        jarvis_with_wake_word()  # Skip face recognition for now, go straight to wake word

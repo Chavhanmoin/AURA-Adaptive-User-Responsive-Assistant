@@ -11,18 +11,35 @@ elif platform == "darwin":
     chrome_path = 'open -a /Applications/Google\\ Chrome.app'
 
 elif platform == "win32":
-    # Use raw string (r'') or escape backslashes
-    chrome_path = r'C:\Program Files (x86)\Google\Chrome\Application\chrome.exe'
+    # Try both possible Chrome locations
+    chrome_paths = [
+        r'C:\Program Files\Google\Chrome\Application\chrome.exe',
+        r'C:\Program Files (x86)\Google\Chrome\Application\chrome.exe'
+    ]
+    chrome_path = None
+    for path in chrome_paths:
+        if os.path.exists(path):
+            chrome_path = path
+            break
+    if not chrome_path:
+        chrome_path = chrome_paths[0]  # Default fallback
 
 else:
     print('Unsupported OS')
     exit(1)
 
 # Register Chrome browser if available
-try:
-    webbrowser.register('chrome', None, webbrowser.BackgroundBrowser(chrome_path))
-except Exception as e:
-    print("Failed to register Chrome:", e)
+if platform == "win32" and chrome_path:
+    try:
+        webbrowser.register('chrome', None, webbrowser.BackgroundBrowser(chrome_path))
+        print(f"Chrome registered: {chrome_path}")
+    except Exception as e:
+        print(f"Failed to register Chrome: {e}")
+else:
+    try:
+        webbrowser.register('chrome', None, webbrowser.BackgroundBrowser(chrome_path))
+    except Exception as e:
+        print(f"Failed to register Chrome: {e}")
 
 def youtube(textToSearch: str) -> None:
     """
@@ -34,13 +51,16 @@ def youtube(textToSearch: str) -> None:
 
     query = urllib.parse.quote(textToSearch)
     url = "https://www.youtube.com/results?search_query=" + query
+    print(f"Opening YouTube search: {url}")
 
     try:
         webbrowser.get('chrome').open_new_tab(url)
-    except webbrowser.Error:
-        # Fallback to default browser if Chrome is not found
-        print("Chrome not found, using default browser.")
+        print(f"✓ YouTube search opened for: {textToSearch}")
+    except:
+        # Fallback to default browser
+        print("Using default browser for YouTube search")
         webbrowser.open_new_tab(url)
+        print(f"✓ YouTube search opened for: {textToSearch}")
 
 # For testing standalone
 if __name__ == '__main__':
