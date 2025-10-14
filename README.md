@@ -1,124 +1,111 @@
-<h1 align="center">J.A.R.V.I.S </h1> 
+## **Project Overview**
 
-<div align="center">
-  
-[![Welcome to my profile](https://img.shields.io/badge/Hello,Devs!-Welcome-blue.svg?style=flat&logo=github)](https://github.com/gauravsingh9356/J.A.R.V.I.S)
-[![Open Source Love](https://badges.frapsoft.com/os/v2/open-source.svg?v=103)](https://github.com/gauravsingh9356/J.A.R.V.I.S)
- [![GitHub issues](https://img.shields.io/github/issues/GauravSingh9356/J.A.R.V.I.S)](https://github.com/GauravSingh9356/J.A.R.V.I.S/issues)
-![Stars](https://img.shields.io/github/stars/gauravsingh9356/J.A.R.V.I.S?style=flat&logo=github)
-![Forks](https://img.shields.io/github/forks/gauravsingh9356/J.A.R.V.I.S?style=flat&logo=github)
-[![GitHub license](https://img.shields.io/github/license/GauravSingh9356/J.A.R.V.I.S)](https://github.com/GauravSingh9356/J.A.R.V.I.S/blob/master/LICENSE)
-  
-[![forthebadge made-with-python](http://ForTheBadge.com/images/badges/made-with-python.svg)](https://www.python.org/)
+The Hybrid A.U.R.A Assistant is a **voice-controlled AI system** designed to automate PC tasks, perform web automation, generate AI-powered responses, and control smart home devices. Built using Python, Selenium, OpenAI API, and IoT integration, Jarvis can run **continuously in the background**, wake on a **voice command**, and execute tasks intelligently, providing a futuristic assistant experience.
 
-  </div>
+---
 
+“Problem Statement & Objective” section before the overview:Example:Modern users handle multiple devices and repetitive tasks daily. The AURA Assistant aims to unify PC automation, AI interaction, and IoT control into one intelligent, always-active system.
 
+## **3. Scope of the Project**
 
-<img src="jarvis1.jpg"/>
+1. **Voice Interaction**
+    - Recognizes user voice commands.
+    - Responds via text-to-speech.
+    - Wake-on-voice activation (“Hey Aura”).
+2. **System Automation**
+    - Open/close applications (Chrome, Notepad, VS Code, etc.).
+    - System operations: shutdown, restart, volume/brightness adjustment.
+    - Keyboard/mouse automation for tasks.
+3. **Web Automation**
+    - Google searches and information retrieval.
+    - YouTube video search and playback.
+    - Gmail automation: open, read, draft emails.
+    - WhatsApp Web automation: send messages.
+    - General browser automation using Selenium.
+4. **AI Integration**
+    - Generate intelligent replies, email drafts, and messages via OpenAI API.
+    - Understand natural language commands for context-aware actions.
+5. **IoT / Home Automation**
+    - Control Arduino/ESP8266 connected devices through **Sinric Pro**.
+    - Integrate with Alexa for voice-controlled smart home operations.
+6. **Background Operation & Daemon Mode**
+    - Runs silently in the background.
+    - Wake on a voice command without manual start.
+    - Convertible into a Windows executable (.exe) using PyInstaller.
 
-### Requirements:
+---
 
-<li>datetime</li>
-<li>os</li>
-<li> pyttsx3</li>
-<li> wikipedia</li>
-<li> speech_recognition </li>
-<li> webbrowser</li>
-<li> sys</li>
-<li> smtplib</li>
-<li>requests</li>
-<li>json</li>
-<li>defflib</li>
-<li>geocoder</li>
-<li>pyjokes</li>
-<li>psutil</li>
-<li> pyautogui</li>
-<li> opencv</li>
+## **4. Tools and Libraries**
 
-<h2>Required Packages</h2>
+| Category | Purpose | Library / Tool |
+| --- | --- | --- |
+| Core Python | Voice recognition | `speech_recognition` |
+| Core Python | Text-to-speech | `pyttsx3` |
+| Core Python | Audio input | `pyaudio` |
+| Core Python | Environment variables | `python-dotenv` |
+| Core Python | Scheduling | `schedule` |
+| Core Python | GUI & notifications | `tkinter`, `plyer`, `win10toast` |
+| Core Python | Background process | `daemonize`, `pyinstaller` |
+| System Control | Open apps/files | `os`, `subprocess` |
+| System Control | Keyboard & mouse | `pyautogui` |
+| System Control | Clipboard | `pyperclip` |
+| System Control | File management | `os`, `shutil`, `glob` |
+| Web Automation | Browser control | `selenium` |
+| Web Automation | Browser driver | `webdriver-manager` |
+| Web Automation | Web scraping | `beautifulsoup4`, `lxml` |
+| Web Automation | HTTP requests | `requests` |
+| Web Automation | Modern browser automation | `pyppeteer`, `playwright` |
+| Home Automation | Cloud IoT | **Sinric Pro** |
+| Home Automation | Communication | `websocket-client` |
+| Home Automation | Local IoT protocol | `paho-mqtt` |
+| Camera & Vision | Camera access | `opencv-python` |
+| Camera & Vision | Face detection | `face_recognition` |
+| Camera & Vision | Object tracking | `cvlib`, `mediapipe` |
+| Camera & Vision | Image processing | `numpy`, `pillow` |
+| Speech & NLP | Wake word detection | `porcupine`, `snowboy` |
+| Speech & NLP | AI understanding | `transformers`, `openai` |
+| Memory & Data | Local database | `sqlite3` |
+| Memory & Data | File storage | `json`, `pickle` |
+| Memory & Data | Logging | `logging`, `rich` |
+| Optional Add-ons | Web dashboard | `Flask`, `FastAPI` |
+| Optional Add-ons | Remote control | `python-telegram-bot` |
+| Optional Add-ons | Task reminders | `plyer`, `notify-py` |
+| Optional Add-ons | Email automation | `smtplib`, `imaplib` |
+| Optional Add-ons | Live data | `requests` + APIs |
+| Packaging & Deployment | Convert to .exe | `pyinstaller` |
+| Packaging & Deployment | Run silently | `pythonw`, `pywin32` |
+| Packaging & Deployment | Auto start | Windows Task Scheduler |
+| Packaging & Deployment | Virtual environment | `venv` |
 
+---
+
+## **5. Folder Structure **
 ```
-pip install -r requirements.txt
-```
 
-> _ To install PyAudio on windows head over to https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyaudio and download the .whl for your machine and run the installation as shown below, then install the remaining dependencies from the requirements.txt file. You may remove pyAduio from the requirements file if it interrupts your installation (its there for unix users)
-```bash
-pip install PyAudio‑0.2.11‑cp<version>‑cp<version>m‑win_amd<architecture>.whl
-```
+---
 
-### On Ubuntu based Linux distribution you need to install the following packages, so that the code works:
+## **6. Key Features**
 
-```
-sudo apt-get update && sudo apt-get install espeak
+- Voice-activated hands-free operation.
+- Multi-domain automation: system, web, AI, IoT.
+- Background operation with wake-on-voice functionality.
+- Modular design for easy scalability and feature addition.
 
-```
+---
 
-### What it does...
+## **7. Benefits**
 
-  <ul>
-   <li>Dynamic Authentication using Optical Face Recognition</li>
-<li>Send emails</li>
-  <li>Dynamic News Reporting at any time with api integration</li>
-  <li>Todo list generator, Yes it remembers all!</li> 
-<li>Open any website with just a voice command</li>
-<li>Plays Music</li>
-<li>Tells time</li>
-<li>Wikipedia powered AI</li>
-<li>Dictionary with Intelligent Sensing i.e. auto checking if spell mistake</li>
-<li>Weather Report such as temp, wind speed, humidity, weather description</li>
-<li>Latitude and longitude</li>
- <li>YouTube searching</li> 
- <li>Google Map searching</a>
- <li>YouTube Downloader, download any youtube video by just putting url of video</li>
- <li>Now Master can switch b/w J.A.R.V.I.S and F.R.I.D.A.Y, switch to female voice assistant</li>
-</ul>
+- Boosts productivity through automation.
+- Provides futuristic AI assistant experience.
+- Simplifies smart home management.
+- Centralizes multiple digital tasks in a single platform.
 
-<table>
-  <tr>
-    <td><img src="images/Screenshot%20(138).png"/></td>
-      <td><img src="https://github.com/GauravSingh9356/J.A.R.V.I.S/blob/master/images/face-600x900.png"/></td>
-    
+---
 
-</tr>
-<tr>
-<td><img src="images/email.jpg"/></td>
-<td><img src="https://github.com/GauravSingh9356/J.A.R.V.I.S/blob/master/images/maxresdefault.jpg"/></td>
-</tr>
-<td><img src="https://github.com/GauravSingh9356/J.A.R.V.I.S/blob/master/images/4-Best-Weather-Forecast-APIs-for-Development-of-Weather-Apps-624x304.jpeg"/></td>
-  <td><img src="https://github.com/GauravSingh9356/J.A.R.V.I.S/blob/master/images/maxresdefault%20(1).jpg"/></td>
-</tr>
-<tr>
-  <td><img src="canny.jpg"/>
-          </td>
-  <td><img src="ImgContor.jpg"/>
-          </td>
-</tr>
-</table>
+## **8. Future Enhancements**
 
-## Some Sneak peeks:
-
-<ul>
-  <li><h2> Jarvis, Are you there?</h2></li>
-  <li><h2> At your service, Sir</h2></li>
-  
-  <li><h2> Jarvis, What are today's news headlines? can you tell?</h2></li>
-  <li><h2>Ofcourse, Sir -> Then news headlines   Would you like to visit the news url?</h2></li>
-  
-  <li><h2> Search Youtube</h2></li>
-  <li><h2>What you want to search, Sir</h2></li>
-  <li><h2>Coding for kids</h2></li>
-  <li><h2> Opens youtube in browser with desired search query results </h2></li>
-  
-   <li><h2> Jarvis, Can you send email to Gaurav?</h2></li>
-  <li><h2>What I say sir, Sir</h2></li>
-   <li><h2>Gaurav is a good boy</h2></li>
-  <li><h2> Email is sent successfully, Sir</h2></li>
-  
-  # And so on....
-  
-<a href="https://techtalkswithgaurav.blogspot.com/2020/06/your-personal-assistant-jarvis.html" target="_blank">Read complete blog article</a>
-
-## Contribution:
-Thank you for your interest in contributing to our Repo! Pull requests are welcome. For fixing typos, please make a PR with your fixes. We are happy for every contribution.
-A lot can be done with this project. Core AI chatbot like functionality can be added. More python scripts can be associated. Pull requests for any such changes are accepted. Feel free to fork this project and make your own changes too.
+- Facial recognition for user authentication.
+- Web dashboard for remote control and monitoring.
+- Contextual memory to remember previous commands.
+- Integration with more AI services for smarter responses.
+- Scheduling advanced tasks and reminders.
