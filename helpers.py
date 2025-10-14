@@ -1,50 +1,98 @@
+import os
+import json
 import pyttsx3
 import pyautogui
 import psutil
 import pyjokes
 import speech_recognition as sr
-import json
 import requests
 import geocoder
+import subprocess
 from difflib import get_close_matches
+from dotenv import load_dotenv
 
-# Initialize text to speech engine
+# Load environment variables (especially the weather API key)
+# Adjust the path to your .env location if needed
+load_dotenv(dotenv_path=r"F:\J.A.R.V.I.S-master\.env")
+
+WEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
+
+# Initialize TTS engine
 engine = pyttsx3.init()
 voices = engine.getProperty('voices')
-engine.setProperty('voice', voices[0].id)  # Change index for different voices
+engine.setProperty('voice', voices[0].id)
 
-# Get geolocation based on IP
+# Geolocation for weather
 g = geocoder.ip('me')
 
-# Load dictionary data (for translate function)
-data = json.load(open('data.json'))
+# Dictionary (for translate) data
+try:
+    data = json.load(open('data.json'))
+except Exception as e:
+    data = {}
+    print("Could not load data.json:", e)
+
+# App aliases (for Windows .exe names)
+app_aliases = {
+    "chrome": "chrome.exe",
+    "spotify": "spotify.exe",
+    "notepad": "notepad.exe",
+    "word": "winword.exe",
+    "excel": "excel.exe",
+    "vs code": "Code.exe",
+    "vlc": "vlc.exe",
+    "telegram": "Telegram.exe",
+    "zoom": "Zoom.exe",
+    "cmd": "cmd.exe",
+    "calculator": "calc.exe",
+    "paint": "mspaint.exe"
+}
 
 def speak(audio) -> None:
-    """Convert text to speech."""
+    """Speak out the given text via TTS."""
     engine.say(audio)
     engine.runAndWait()
 
 def screenshot() -> None:
-    """Take a screenshot and save it to specified path."""
-    img = pyautogui.screenshot()
-    img.save(r'C:\Users\Admin\Pictures\Screenshots\screenshot.png')
+    """Take a screenshot and save to a predefined folder."""
+    try:
+        img = pyautogui.screenshot()
+        save_path = r'C:\Users\Admin\Pictures\Screenshots\screenshot.png'  # Change path as needed
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        img.save(save_path)
+        speak("Screenshot taken and saved.")
+    except Exception as e:
+        print("Error saving screenshot:", e)
+        speak("Sorry, I could not take screenshot.")
 
 def cpu() -> None:
-    """Report CPU usage and battery percentage."""
-    usage = str(psutil.cpu_percent())
-    speak("CPU is at " + usage + " percent")
+    """Report CPU usage and battery status."""
+    try:
+        usage = psutil.cpu_percent()
+        speak("CPU is at " + str(usage) + " percent.")
+    except Exception as e:
+        print("CPU error:", e)
 
-    battery = psutil.sensors_battery()
-    speak("Battery is at")
-    speak(str(battery.percent) + " percent")
+    try:
+        battery = psutil.sensors_battery()
+        if battery:
+            speak("Battery is at " + str(battery.percent) + " percent.")
+        else:
+            speak("Battery information is not available.")
+    except Exception as e:
+        print("Battery error:", e)
 
 def joke() -> None:
-    """Speak 5 jokes."""
-    for i in range(5):
-        speak(pyjokes.get_jokes()[i])
+    """Tell a few jokes (limited)."""
+    try:
+        jokes = pyjokes.get_jokes()
+        for i in range(min(5, len(jokes))):
+            speak(jokes[i])
+    except Exception as e:
+        print("Joke error:", e)
 
 def takeCommand() -> str:
-    """Listen and recognize speech, return recognized text."""
+    """Listen via microphone and return spoken text."""
     r = sr.Recognizer()
     with sr.Microphone() as source:
         print('Listening...')
@@ -56,56 +104,85 @@ def takeCommand() -> str:
     try:
         print('Recognizing...')
         query = r.recognize_google(audio, language='en-in')
-        print(f'User said: {query}\n')
+        print(f'User said: {query}')
+        return query
     except Exception as e:
         # print(e)
         print('Say that again please...')
         return 'None'
-    return query
 
 def weather():
-    """Fetch weather info using World Weather Online API and speak it."""
+    """Fetch weather data using the World Weather Online API and speak it."""
+    if not WEATHER_API_KEY:
+        speak("Weather API key is not set.")
+        return
+
     try:
-        city = g.city or "your location"
-        api_key = 'a9aee7d060da410ca8860747251410'
-        api_url = f"https://api.worldweatheronline.com/premium/v1/weather.ashx?key={api_key}&q={city}&format=json&num_of_days=1"
+        # Use city name or IP-derived location
+        location = g.city or "Delhi"
+        api_url = (
+            f"http://api.worldweatheronline.com/premium/v1/weather.ashx"
+            f"?key={WEATHER_API_KEY}&q={location}&format=json&num_of_days=1"
+        )
+        res = requests.get(api_url)
+        data = res.json()
 
-        response = requests.get(api_url)
-        data_json = response.json()
+        current = data['data']['current_condition'][0]
+        temp_c = current['temp_C']
+        wind = current['windspeedKmph']
+        humidity = current['humidity']
+        description = current['weatherDesc'][0]['value']
 
-        if 'data' in data_json and 'current_condition' in data_json['data']:
-            current = data_json['data']['current_condition'][0]
-
-            temp_c = current['temp_C']
-            weather_desc = current['weatherDesc'][0]['value']
-            humidity = current['humidity']
-            wind_speed_kmph = current['windspeedKmph']
-
-            speak(f"Current location is {city}")
-            speak(f"Weather type is {weather_desc}")
-            speak(f"Temperature is {temp_c} degrees Celsius")
-            speak(f"Humidity is {humidity} percent")
-            speak(f"Wind speed is {wind_speed_kmph} kilometers per hour")
-        else:
-            speak("Sorry, I couldn't get the weather information right now.")
+        speak(f"Current weather in {location}")
+        speak(f"Condition: {description}")
+        speak(f"Temperature: {temp_c} degrees Celsius")
+        speak(f"Wind Speed: {wind} kilometers per hour")
+        speak(f"Humidity: {humidity} percent")
     except Exception as e:
-        print(f"Error getting weather: {e}")
-        speak("Sorry, something went wrong while fetching the weather.")
+        print("Weather fetch error:", e)
+        speak("Sorry, I couldn't fetch weather information right now.")
 
-def translate(word):
-    """Translate a word using local data.json dictionary with fuzzy matching."""
+def translate(word: str):
+    """Translate or define the word (using a loaded dictionary)."""
     word = word.lower()
     if word in data:
         speak(data[word])
     elif len(get_close_matches(word, data.keys())) > 0:
         x = get_close_matches(word, data.keys())[0]
-        speak('Did you mean ' + x + ' instead? Respond with Yes or No.')
+        speak('Did you mean ' + x + ' instead? Respond Yes or No.')
         ans = takeCommand().lower()
         if 'yes' in ans:
             speak(data[x])
         elif 'no' in ans:
-            speak("Word doesn't exist. Please make sure you spelled it correctly.")
+            speak("Word doesn't exist. Please check your spelling.")
         else:
-            speak("We didn't understand your entry.")
+            speak("I didn't understand your response.")
     else:
-        speak("Word doesn't exist. Please double check it.")
+        speak("Word doesn't exist in the dictionary.")
+
+def resolve_app_name(name: str) -> str:
+    """Convert a voice-given name to the real executable name."""
+    return app_aliases.get(name.lower(), name + ".exe")
+
+def open_app(app_name: str):
+    """Open an application by name."""
+    try:
+        resolved = resolve_app_name(app_name)
+        subprocess.Popen(resolved)
+        speak(f"Opening {app_name}")
+    except Exception as e:
+        print("Error opening app:", e)
+        speak(f"Sorry, I couldn't open {app_name}")
+
+def close_app(app_name: str):
+    """Close a running application by killing its process."""
+    resolved = resolve_app_name(app_name)
+    for proc in psutil.process_iter(['pid', 'name']):
+        try:
+            if resolved.lower() in proc.info['name'].lower():
+                proc.kill()
+                speak(f"{app_name} has been closed.")
+                return
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            continue
+    speak(f"{app_name} is not running.")

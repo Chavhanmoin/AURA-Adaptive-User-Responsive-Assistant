@@ -9,7 +9,7 @@ import smtplib
 import cv2
 from sys import platform
 from dotenv import load_dotenv
-
+from youtube import youtube
 from news import speak_news, getNewsUrl
 from OCR import OCR
 from diction import translate
