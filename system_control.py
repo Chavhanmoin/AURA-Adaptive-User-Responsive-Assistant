@@ -78,6 +78,7 @@ class SystemController:
             'calc': 'CalculatorApp.exe', 
             'paint': 'mspaint.exe',
             'mspaint': 'mspaint.exe',
+            'paints': 'mspaint.exe',
             'chrome': 'chrome.exe',
             'spotify': 'Spotify.exe'
         }

@@ -17,10 +17,13 @@ load_dotenv(dotenv_path=r"F:\J.A.R.V.I.S-master\.env")
 
 WEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
 
-# Initialize TTS engine
+# Initialize enhanced TTS engine
 engine = pyttsx3.init()
 voices = engine.getProperty('voices')
 engine.setProperty('voice', voices[0].id)
+# Optimize TTS settings
+engine.setProperty('rate', 180)  # Slightly faster speech
+engine.setProperty('volume', 0.9)  # High volume
 
 # Geolocation for weather
 g = geocoder.ip('me')
@@ -50,8 +53,12 @@ app_aliases = {
 
 def speak(audio) -> None:
     """Speak out the given text via TTS."""
-    engine.say(audio)
-    engine.runAndWait()
+    try:
+        engine.say(audio)
+        engine.runAndWait()
+    except Exception as e:
+        print(f"TTS Error: {e}")
+        print(f"Speaking: {audio}")
 
 def screenshot() -> None:
     """Take a screenshot and save to a predefined folder."""
@@ -92,22 +99,30 @@ def joke() -> None:
         print("Joke error:", e)
 
 def takeCommand() -> str:
-    """Listen via microphone and return spoken text."""
+    """Adaptive speech recognition"""
     r = sr.Recognizer()
+    r.energy_threshold = 3000
+    r.pause_threshold = 1.5  # Wait 1.5 seconds of silence
+    
     with sr.Microphone() as source:
-        print('Listening...')
-        r.pause_threshold = 2  # Increased for longer commands
-        r.energy_threshold = 300
-        r.adjust_for_ambient_noise(source, duration=1)
-        audio = r.listen(source, timeout=10, phrase_time_limit=8)  # Longer listening time
-
+        print('🎤 Listening...')
+        r.adjust_for_ambient_noise(source, duration=0.3)
+        
+        try:
+            # Listen with adaptive timeout - extends if user keeps speaking
+            audio = r.listen(source, timeout=5, phrase_time_limit=15)
+        except sr.WaitTimeoutError:
+            return 'None'
+    
     try:
-        print('Recognizing...')
         query = r.recognize_google(audio, language='en-in')
-        print(f'User said: {query}')
-        return query
+        if query and query.strip():
+            print(f'✅ User said: {query}')
+            return query.strip().lower()
+        else:
+            return 'None'
     except Exception as e:
-        print('Say that again please...')
+        print(f'❌ Recognition failed: {e}')
         return 'None'
 
 def weather():
@@ -117,8 +132,8 @@ def weather():
         return
 
     try:
-        # Use city name or IP-derived location
-        location = g.city or "Delhi"
+        # Use Wardha as default location (your actual location)
+        location = "Wardha"
         api_url = (
             f"http://api.worldweatheronline.com/premium/v1/weather.ashx"
             f"?key={WEATHER_API_KEY}&q={location}&format=json&num_of_days=1"

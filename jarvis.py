@@ -17,7 +17,6 @@ from OCR import OCR
 from diction import translate
 from helpers import *
 from system_control import open_anything, close_anything, execute_system_command
-import speech_recognition as sr
 from web_automation import search_google, search_youtube, send_whatsapp_message, compose_gmail, close_web_automation
 from intent_recognition import process_user_intent
 from ai_intent_recognition import get_ai_intent
@@ -59,6 +58,8 @@ class Jarvis:
         else:
             speak('Good Evening SIR')
 
+        # System status on startup
+        cpu()
         weather()
         speak('I am JARVIS. Please tell me how can I help you SIR?')
 
@@ -76,21 +77,18 @@ class Jarvis:
             speak('Sorry sir, not able to send email at the moment')
 
     def execute_query(self, query):
-        # Always try AI intent first (with better fallback)
-        try:
-            ai_intent = get_ai_intent(query)
-            print(f"AI Intent: {ai_intent}")
-            if ai_intent['confidence'] > 0.5:
-                return self.handle_ai_intent(ai_intent)
-        except Exception as e:
-            print(f"AI processing failed: {e}")
+        # Use AI only for complex commands
+        if any(word in query.lower() for word in ['search', 'youtube', 'gmail', 'email', 'mail', 'whatsapp']):
+            try:
+                ai_intent = get_ai_intent(query)
+                print(f"AI Intent: {ai_intent}")
+                if ai_intent['confidence'] > 0.5:
+                    self.handle_ai_intent(ai_intent)
+                    return
+            except Exception as e:
+                print(f"AI processing failed: {e}")
         
-        # Fallback to rule-based intent
-        intent_data = process_user_intent(query)
-        if intent_data['intent'] and intent_data['confidence'] > 0.3:
-            return self.handle_intent(intent_data)
-        
-        # Original processing as last resort
+        # Direct command processing
         query = query.lower()
 
         if 'wikipedia' in query:
@@ -130,15 +128,18 @@ class Jarvis:
             result = open_anything(path)
             speak(result)
 
-        elif 'cpu' in query:
+        elif 'cpu' in query or 'battery' in query:
             cpu()
+            return
 
         elif 'joke' in query:
             joke()
+            return
 
         elif 'screenshot' in query:
             speak("taking screenshot")
             screenshot()
+            return
 
         elif 'open google' in query:
             webbrowser.get('chrome').open_new_tab('https://google.com')
@@ -153,20 +154,20 @@ class Jarvis:
         elif 'youtube' in query and 'search' in query:
             search_term = query.replace('youtube', '').replace('search', '').replace('open', '').replace('and', '').strip()
             if search_term and len(search_term) > 1:
-                result = search_youtube(search_term)
-                print(result)
-                speak(result)
+                youtube(search_term)
+                speak(f"Opening YouTube search for {search_term}")
             else:
                 speak('What do you want to search on Youtube?')
                 search_term = takeCommand()
                 if search_term != 'None':
-                    result = search_youtube(search_term)
-                    print(result)
-                    speak(result)
+                    youtube(search_term)
+                    speak(f"Opening YouTube search for {search_term}")
+            return
 
         elif 'the time' in query:
             strTime = datetime.datetime.now().strftime("%H:%M:%S")
             speak(f'Sir, the time is {strTime}')
+            return
 
         elif 'search' in query and 'youtube' not in query:
             # Extract search term from query or ask for it
@@ -181,6 +182,7 @@ class Jarvis:
                 speak(result)
             else:
                 speak('No search term provided')
+            return
 
         elif 'location' in query:
             speak('What is the location?')
@@ -199,7 +201,7 @@ class Jarvis:
             speak('My name is JARVIS')
 
         elif 'who made you' in query:
-            speak('I was created by my AI master in 2021')
+            speak('I was created by my AI master in 2025')
 
         elif 'stands for' in query:
             speak('J.A.R.V.I.S stands for JUST A RATHER VERY INTELLIGENT SYSTEM')
@@ -208,14 +210,20 @@ class Jarvis:
             item = query.replace('open', '').replace('folder', '').strip()
             if 'download' in item:
                 item = 'downloads'
+            elif item == 'settings':
+                os.system('start ms-settings:')
+                speak('Opening Windows Settings')
+                return
             result = open_anything(item)
             print(result)
             speak(result)
+            return
         
         elif 'close' in query:
             item = query.replace('close', '').strip()
             result = close_anything(item)
             speak(result)
+            return
         
         elif 'run command' in query or 'execute' in query:
             speak('What command should I execute?')
@@ -251,10 +259,13 @@ class Jarvis:
             with open('data.txt', 'r') as remember:
                 speak("You told me to remember that: " + remember.read())
 
-        elif 'sleep' in query or 'exit' in query or 'quit' in query:
-            close_web_automation()
+        elif 'sleep' in query or 'exit' in query or 'quit' in query or 'goodbye' in query or 'bye' in query:
+            try:
+                close_web_automation()
+            except:
+                pass
             speak("Goodbye Sir, shutting down JARVIS")
-            sys.exit()
+            os._exit(0)
     
     def handle_intent(self, intent_data):
         """Handle recognized intents"""
@@ -320,7 +331,7 @@ class Jarvis:
                 speak('Which application should I open?')
             return
         
-        elif intent == 'close_app':
+        elif intent == 'close_app' or intent == 'close':
             app = entities.get('app', entities.get('application', ''))
             if app:
                 result = close_anything(app)
@@ -329,11 +340,15 @@ class Jarvis:
                 speak('Which application should I close?')
             return
         
-        elif intent == 'search_google':
+        elif intent == 'search' or intent == 'search_google':
             query = entities.get('query', entities.get('search_term', ''))
             if query:
-                result = search_google(query)
-                speak(result)
+                if entities.get('platform') == 'youtube':
+                    result = search_youtube(query)
+                    speak(f"Searching YouTube for {query}")
+                else:
+                    result = search_google(query)
+                    speak(f"Searching Google for {query}")
             else:
                 speak('What should I search for?')
             return
@@ -341,17 +356,16 @@ class Jarvis:
         elif intent == 'search_youtube':
             query = entities.get('query', entities.get('search_term', entities.get('search_query', '')))
             if query:
-                result = search_youtube(query)
-                print(result)
-                speak(result)
+                youtube(query)
+                speak(f"Opening YouTube search for {query}")
             else:
                 speak('What should I search on YouTube?')
             return
         
-        elif 'send' in intent or 'message' in intent or 'whatsapp' in intent:
+        elif ('send' in intent or 'message' in intent) and 'email' not in intent and 'mail' not in intent and 'whatsapp' in intent:
             contact = entities.get('contact', '')
             message = entities.get('message', '')
-            print(f"DEBUG: Intent matched - {intent}")
+            print(f"DEBUG: WhatsApp Intent matched - {intent}")
             print(f"DEBUG: Contact - {contact}")
             print(f"DEBUG: Message - {message}")
             if contact and message:
@@ -390,44 +404,111 @@ class Jarvis:
             joke()
             return
         
-        elif intent == 'weather_query':
+        elif intent == 'weather_query' or intent == 'get_weather' or 'weather' in intent or intent == 'check_weather':
             weather()
+            return
+        
+        elif intent == 'check_status' or intent == 'system_status' or 'battery' in str(entities) or 'cpu' in str(entities):
+            cpu()
+            return
+        
+        elif intent == 'open' or intent == 'open_app':
+            app = entities.get('app', entities.get('application', entities.get('target', '')))
+            if app:
+                result = open_anything(app)
+                speak(result)
+            else:
+                speak('Which application should I open?')
             return
         
         elif intent == 'screenshot':
             screenshot()
             return
         
-        elif 'email' in intent or 'mail' in intent:
+        elif any(word in intent.lower() for word in ['email', 'mail', 'gmail']) or any(word in str(entities).lower() for word in ['email', 'mail', 'gmail']) or ('send' in intent and any(word in str(entities).lower() for word in ['mail', 'email', 'gmail'])) or ('write' in intent and any(word in str(entities).lower() for word in ['mail', 'email', 'gmail'])) or ('compose' in intent):
             recipient = entities.get('recipient', entities.get('to', ''))
             subject = entities.get('subject', '')
             body = entities.get('body', entities.get('message', ''))
             print(f"DEBUG: Email intent - Recipient: {recipient}, Subject: {subject}")
             
-            if not recipient:
-                speak('What is the email address?')
-                recipient = takeCommand()
-            if not subject:
-                speak('What is the subject?')
-                subject = takeCommand()
-            if not body:
-                speak('What should I write in the email?')
-                body = takeCommand()
+            # Use OpenAI to draft email if subject provided
+            if subject and not body:
+                try:
+                    import openai
+                    response = openai.ChatCompletion.create(
+                        model="gpt-3.5-turbo",
+                        messages=[
+                            {"role": "system", "content": "You are a professional email assistant. Draft ONLY the email body content (no subject line, no 'Subject:' prefix). Start directly with the greeting."},
+                            {"role": "user", "content": f"Write the email body content for: {subject}"}
+                        ],
+                        max_tokens=200,
+                        temperature=0.7
+                    )
+                    body = response.choices[0].message.content.strip()
+                    
+                    # Remove subject line if AI included it
+                    if body.startswith('Subject:'):
+                        lines = body.split('\n')
+                        body = '\n'.join(lines[1:]).strip()
+                    
+                    # Remove any remaining subject references
+                    body = body.replace(f'Subject: {subject}', '').strip()
+                    print(f"AI drafted email: {body}")
+                except Exception as e:
+                    print(f"AI drafting failed: {e}")
+                    body = f"Dear Sir/Madam,\n\nI am writing regarding {subject}.\n\nThank you for your consideration.\n\nBest regards"
             
+            # Use Gmail API to send email directly
             try:
                 from gmail_service import send_gmail_api
-                result = send_gmail_api(recipient, subject, body)
-                print(result)
-                speak(result)
+                
+                # Open Gmail draft with URL method (more reliable)
+                import urllib.parse
+                
+                # Clean up body formatting
+                if body:
+                    body = body.replace("[Your Name]", "Admin")
+                    body = body.replace("[Recipient's Name]", "")
+                    if not any(word in body for word in ["Best regards", "Regards", "Sincerely"]):
+                        body += "\n\nBest regards,\nAdmin"
+                
+                # URL encode for Gmail
+                subject_encoded = urllib.parse.quote(subject or "Email from JARVIS")
+                body_encoded = urllib.parse.quote(body or "").replace("%0A", "%0D%0A")
+                
+                # Create Gmail compose URL (recipient left blank)
+                gmail_url = f"https://mail.google.com/mail/?view=cm&fs=1&to=&su={subject_encoded}&body={body_encoded}"
+                
+                # Open Gmail draft
+                import webbrowser
+                webbrowser.open(gmail_url)
+                speak(f"Gmail draft opened with subject: {subject}. Please add recipient and send.")
+                
             except Exception as e:
                 print(f"Gmail API error: {e}")
-                speak("Sorry, email sending failed")
+                # Fallback to web interface
+                try:
+                    from web_automation import init_web_automation
+                    bot = init_web_automation()
+                    result = bot.gmail_compose(recipient or 'recipient@example.com', subject, body)
+                    speak(f"Gmail opened with drafted email: {subject}")
+                except Exception as web_error:
+                    print(f"Web automation error: {web_error}")
+                    speak("Opening Gmail manually")
+                    import webbrowser
+                    webbrowser.open("https://mail.google.com")
             return
         
         elif intent == 'shutdown':
             speak('Shutting down the system')
             if platform == "win32":
                 os.system('shutdown /p /f')
+            return
+        
+        elif intent == 'create' and 'painting' in str(entities):
+            # Handle "paints" as close paint app
+            result = close_anything('paint')
+            speak(result)
             return
         
         elif intent == 'other':
@@ -475,8 +556,9 @@ def jarvis_with_wake_word():
     """JARVIS with wake word activation and keyboard input"""
     import keyboard
     import threading
+    import time
     
-    speak("JARVIS initialized. Say 'Jarvis' to wake me up or press Ctrl+K to type command.")
+    speak("JARVIS initialized. Say 'Jarvis' or press Ctrl+K for commands.")
     bot_ = Jarvis()
     
     # Simple wake word detection
@@ -508,18 +590,22 @@ def jarvis_with_wake_word():
     
     while True:
         try:
-            print("Listening for 'Jarvis' or press Ctrl+K...")
+            print("Listening for 'Jarvis' or Ctrl+K...")
             with mic as source:
-                audio = r.listen(source, timeout=1, phrase_time_limit=3)
+                audio = r.listen(source, timeout=0.5, phrase_time_limit=2)
             
             text = r.recognize_google(audio, language='en-in').lower()
             print(f"Heard: {text}")
             
             if 'jarvis' in text:
                 speak("At your service sir")
-                query = takeCommand().lower()
-                if query != 'none':
-                    bot_.execute_query(query)
+                print("Listening for command...")
+                query = takeCommand()
+                if query and query != 'none' and query.strip():
+                    print(f"Processing command: {query}")
+                    bot_.execute_query(query.lower())
+                else:
+                    print("No command received, continuing...")
             else:
                 # If no 'jarvis' but got valid speech, treat as direct command
                 if text and text != 'none' and len(text) > 2:
@@ -529,23 +615,18 @@ def jarvis_with_wake_word():
         except (sr.WaitTimeoutError, sr.UnknownValueError):
             pass
         except KeyboardInterrupt:
+            print("\nShutting down JARVIS...")
             speak("Goodbye Sir, shutting down JARVIS")
-            sys.exit(0)
+            os._exit(0)
+        except KeyboardInterrupt:
+            print("\nShutting down JARVIS...")
+            os._exit(0)
         except Exception as e:
             print(f"Error: {e}")
             time.sleep(0.5)
 
 
 if __name__ == '__main__':
-    import time
-    
-    print("Choose activation method:")
-    print("1. Wake word + keyboard (say 'Jarvis' or press Ctrl+K)")
-    print("2. Face recognition + wake word + keyboard")
-    choice = input("Enter choice (1 or 2): ")
-    
-    if choice == '1':
-        jarvis_with_wake_word()
-    else:
-        speak("Starting face recognition...")
-        jarvis_with_wake_word()  # Skip face recognition for now, go straight to wake word
+    bot = Jarvis()
+    bot.wishMe()
+    jarvis_with_wake_word()
