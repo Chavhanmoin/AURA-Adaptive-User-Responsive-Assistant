@@ -20,6 +20,8 @@ from system_control import open_anything, close_anything, execute_system_command
 from web_automation import search_google, search_youtube, send_whatsapp_message, compose_gmail, close_web_automation
 from intent_recognition import process_user_intent
 from ai_intent_recognition import get_ai_intent
+from wikipedia_search import search_and_open_wikipedia
+from file_manager import create_file, create_folder, open_file, open_folder, delete_file, delete_folder, copy_file, move_file, list_files
 
 # Load .env file
 load_dotenv(dotenv_path=r"F:\J.A.R.V.I.S-master\.env")
@@ -92,12 +94,8 @@ class Jarvis:
         query = query.lower()
 
         if 'wikipedia' in query:
-            speak('Searching Wikipedia....')
-            query = query.replace('wikipedia', '')
-            results = wikipedia.summary(query, sentences=2)
-            speak('According to Wikipedia')
-            print(results)
-            speak(results)
+            result = search_and_open_wikipedia(query)
+            return
 
         elif 'youtube downloader' in query:
             exec(open('youtube_downloader.py').read())
@@ -122,11 +120,83 @@ class Jarvis:
         elif 'open amazon' in query:
             webbrowser.get('chrome').open_new_tab('https://amazon.com')
         
-        elif 'open file' in query or 'open folder' in query:
-            speak('What file or folder should I open?')
-            path = takeCommand()
-            result = open_anything(path)
-            speak(result)
+        elif 'create file' in query:
+            speak('What file should I create? Please provide the full path.')
+            file_path = takeCommand()
+            if file_path != 'None':
+                result = create_file(file_path)
+                speak(result)
+            return
+        
+        elif 'create folder' in query:
+            speak('What folder should I create? Please provide the full path.')
+            folder_path = takeCommand()
+            if folder_path != 'None':
+                result = create_folder(folder_path)
+                speak(result)
+            return
+        
+        elif 'delete file' in query:
+            speak('Which file should I delete? Please provide the full path.')
+            file_path = takeCommand()
+            if file_path != 'None':
+                result = delete_file(file_path)
+                speak(result)
+            return
+        
+        elif 'delete folder' in query:
+            speak('Which folder should I delete? Please provide the full path.')
+            folder_path = takeCommand()
+            if folder_path != 'None':
+                result = delete_folder(folder_path)
+                speak(result)
+            return
+        
+        elif 'copy file' in query:
+            speak('Which file should I copy? Please provide source path.')
+            source = takeCommand()
+            if source != 'None':
+                speak('Where should I copy it? Please provide destination path.')
+                destination = takeCommand()
+                if destination != 'None':
+                    result = copy_file(source, destination)
+                    speak(result)
+            return
+        
+        elif 'move file' in query:
+            speak('Which file should I move? Please provide source path.')
+            source = takeCommand()
+            if source != 'None':
+                speak('Where should I move it? Please provide destination path.')
+                destination = takeCommand()
+                if destination != 'None':
+                    result = move_file(source, destination)
+                    speak(result)
+            return
+        
+        elif 'list files' in query:
+            speak('Which folder should I list? Please provide folder path.')
+            folder_path = takeCommand()
+            if folder_path != 'None':
+                result = list_files(folder_path)
+                speak(result)
+            return
+        
+        elif 'open file' in query:
+            speak('Which file should I open? Please provide the full path.')
+            file_path = takeCommand()
+            if file_path != 'None':
+                result = open_file(file_path)
+                speak(result)
+            return
+        
+        elif 'open folder' in query:
+            speak('Which folder should I open? Please provide the full path.')
+            folder_path = takeCommand()
+            if folder_path != 'None':
+                result = open_folder(folder_path)
+                speak(result)
+            return
 
         elif 'cpu' in query or 'battery' in query:
             cpu()

@@ -1,41 +1,33 @@
 import requests
 from bs4 import BeautifulSoup
-import pyttsx3
-import smtplib
+import webbrowser
+from helpers import speak
 
-engine = pyttsx3.init()
-voices = engine.getProperty('voices')
-engine.setProperty('voice', voices[0].id)
+def search_amazon_product(product_name):
+    """Search for a product on Amazon"""
+    try:
+        product = product_name.replace('amazon', '').replace('search', '').strip()
+        
+        if not product:
+            speak("What product should I search on Amazon?")
+            return "No product specified"
+        
+        search_url = f"https://www.amazon.com/s?k={product.replace(' ', '+')}"
+        webbrowser.open(search_url)
+        
+        speak(f"Searching Amazon for {product}")
+        return f"Amazon search opened for: {product}"
+        
+    except Exception as e:
+        speak("Amazon search failed")
+        return f"Error: {str(e)}"
 
-
-def speak(audio):
-    engine.say(audio)
-    engine.runAndWait()
-
-
-def send_email():
-    server = smtplib.SMTP('smtp.gmail.com', 587)
-    server.ehlo()
-    server.starttls()
-    server.login('sendersemail', 'password')
-    subject = 'Price fell down!'
-    body = 'https://www.amazon.in/WOW-Brightening-Vitamin-Face-Wash/dp/B07SZ243VZ/ref=sr_1_6?dchild=1&keywords=wow+face+wash&qid=1594306550&smid=A27LPMZIGZ21IK&sr=8-6'
-    content = f'Subject: {subject}\n\n{body}'
-    server.sendmail('email', 'receiver email', content)
-    server.close()
-
-
-URL = 'https://www.amazon.in/WOW-Brightening-Vitamin-Face-Wash/dp/B07SZ243VZ/ref=sr_1_6?dchild=1&keywords=wow+face+wash&qid=1594306550&smid=A27LPMZIGZ21IK&sr=8-6'
-headers = {
-    "User-Agent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36'}
-
-page = requests.get(URL, headers=headers)
-
-soup = BeautifulSoup(page.content, 'html.parser')
-
-title = soup.find(id='productTitle')
-price = soup.find(id='priceblock_dealprice').get_text().strip()
-speak(price)
-price = price[1:5]
-price = float(price)
-send_email()
+def open_amazon():
+    """Open Amazon homepage"""
+    try:
+        webbrowser.open("https://www.amazon.com")
+        speak("Opening Amazon")
+        return "Amazon opened successfully"
+    except Exception as e:
+        speak("Failed to open Amazon")
+        return f"Error: {str(e)}"
